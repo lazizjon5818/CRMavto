@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, NotFoundException, ForbiddenException, ParseIntPipe } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -41,11 +41,39 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
+  @Get('count')
+  async countAllUsers(@GetUser() user: any) {
+    try {
+      this.logger.log(`Admin ${user.email} fetching total user count`);
+      const count = await this.userService.countAllUsers();
+      return { totalUsers: count };
+    } catch (error) {
+      this.logger.error(`Error fetching user count by ${user.email}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Get('admin-count')
+  async countAdmins(@GetUser() user: any) {
+    try {
+      this.logger.log(`Admin ${user.email} fetching admin count`);
+      const count = await this.userService.countAdmins();
+      return { totalAdmins: count };
+    } catch (error) {
+      this.logger.error(`Error fetching admin count by ${user.email}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   @Get(':id')
-  async findOne(@Param('id') id: string, @GetUser() user: any) {
+  async findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: any) {
     try {
       this.logger.log(`Admin ${user.email} fetching user with ID: ${id}`);
-      return await this.userService.findOne(+id);
+      return await this.userService.findOne(id);
     } catch (error) {
       this.logger.error(`Error fetching user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -54,10 +82,10 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @GetUser() user: any) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto, @GetUser() user: any) {
     try {
       this.logger.log(`User ${user.email} updating user with ID: ${id}`);
-      return await this.userService.update(+id, updateUserDto);
+      return await this.userService.update(id, updateUserDto);
     } catch (error) {
       this.logger.error(`Error updating user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -67,10 +95,10 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @Delete(':id')
-  async remove(@Param('id') id: string, @GetUser() user: any) {
+  async remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: any) {
     try {
       this.logger.log(`Admin ${user.email} deleting user with ID: ${id}`);
-      return await this.userService.remove(+id);
+      return await this.userService.remove(id);
     } catch (error) {
       this.logger.error(`Error deleting user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;

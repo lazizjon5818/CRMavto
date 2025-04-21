@@ -1,0 +1,26 @@
+{
+    "development": {
+      "username": "lazizjan",
+      "password": "laziz2005",
+      "database": "crmavto",
+      "host": "localhost",
+      "port": 5432,
+      "dialect": "postgres"
+    },
+    "test": {
+      "username": "lazizjan",
+      "password": "laziz2005",
+      "database": "crmavto_test",
+      "host": "localhost",
+      "port": 5432,
+      "dialect": "postgres"
+    },
+    "production": {
+      "username": "lazizjan",
+      "password": "laziz2005",
+      "database": "crmavto_prod",
+      "host": "localhost",
+      "port": 5432,
+      "dialect": "postgres"
+    }
+  }

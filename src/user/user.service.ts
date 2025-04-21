@@ -42,7 +42,7 @@ export class UserService {
       return result;
     } catch (error) {
       this.logger.error(`Error creating user ${email}: ${error.message}`, error.stack);
-      throw error; // Xatoni qayta tashlash, controllerda ushlanadi
+      throw error;
     }
   }
 
@@ -113,6 +113,32 @@ export class UserService {
       return { message: 'Foydalanuvchi o‘chirildi' };
     } catch (error) {
       this.logger.error(`Error deleting user with ID ${id}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async countAllUsers(): Promise<number> {
+    try {
+      this.logger.debug(`Counting all users`);
+      const count = await this.userModel.count();
+      this.logger.log(`Total users counted: ${count}`);
+      return count;
+    } catch (error) {
+      this.logger.error(`Error counting users: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async countAdmins(): Promise<number> {
+    try {
+      this.logger.debug(`Counting admin users`);
+      const count = await this.userModel.count({
+        where: { role: UserRole.ADMIN },
+      });
+      this.logger.log(`Total admins counted: ${count}`);
+      return count;
+    } catch (error) {
+      this.logger.error(`Error counting admins: ${error.message}`, error.stack);
       throw error;
     }
   }
