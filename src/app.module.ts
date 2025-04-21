@@ -4,27 +4,24 @@ import { AppService } from './app.service';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
-    // .env faylini o'qish
     ConfigModule.forRoot(),
-    
-    // Sequelize bilan PostgreSQL ulanishi
     SequelizeModule.forRoot({
       dialect: 'postgres',
-      host: process.env.DB_HOST,  // .env faylidan olamiz
-      port: process.env.DB_PORT ? +process.env.DB_PORT : 5432,  // portni tekshirib, default qiymatni berish
-      username: process.env.DB_USERNAME,  // .env faylidan olamiz
-      password: process.env.DB_PASSWORD,  // .env faylidan olamiz
-      database: process.env.DB_NAME,  // .env faylidan olamiz
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT ? +process.env.DB_PORT : 5432,
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
       autoLoadModels: true,
       synchronize: true,
     }),
-    
     UserModule,
-    
-      ],
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
