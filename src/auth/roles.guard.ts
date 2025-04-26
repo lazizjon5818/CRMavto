@@ -1,6 +1,6 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '../user/entities/user.entity'; // UserRole enumini import qilish
+import { UserRole } from '../user/entities/user.entity';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -9,12 +9,25 @@ export class RolesGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.get<UserRole[]>('roles', context.getHandler());
     if (!requiredRoles) {
-      return true; // Agar rol talab qilinmasa, ruxsat beriladi
+      return true;
     }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user; // JwtStrategy dan kelgan user obyekti
+    const user = request.user;
 
-    return requiredRoles.includes(user.role); // Foydalanuvchi roli talab qilingan rollarda bormi?
+    if (!user) {
+      throw new ForbiddenException('Foydalanuvchi autentifikatsiya qilinmagan');
+    }
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    const hasRole = requiredRoles.includes(user.role);
+    if (!hasRole) {
+      throw new ForbiddenException('Sizda bu amalni bajarish uchun ruxsat yo‘q');
+    }
+
+    return true;
   }
 }

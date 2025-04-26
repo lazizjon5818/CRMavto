@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UserService } from '../user/user.service';
@@ -9,15 +9,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'your_very_secure_secret_key',
+      secretOrKey:  process.env.JWT_SECRET || 'your_very_secure_secret_key',
     });
   }
 
   async validate(payload: any) {
-    const user = await this.userService.findOne(payload.sub);
+    const user = await this.userService.findByEmail(payload.email);
     if (!user) {
-      throw new UnauthorizedException('Foydalanuvchi topilmadi');
+      return null;
     }
-    return { id: user.id, email: user.email, role: user.role };
+    return {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      username: user.username,
+    };
   }
 }

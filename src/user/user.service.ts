@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/sequelize';
@@ -26,6 +26,14 @@ export class UserService {
       if (existingUser) {
         this.logger.warn(`Failed to create user: Email ${email} already exists`);
         throw new ConflictException('Email allaqachon ro‘yxatdan o‘tgan');
+      }
+
+      const existingUsername = await this.userModel.findOne({
+        where: { username },
+      });
+      if (existingUsername) {
+        this.logger.warn(`Failed to create user: Username ${username} already exists`);
+        throw new ConflictException('Username allaqachon ro‘yxatdan o‘tgan');
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -76,7 +84,7 @@ export class UserService {
       const user = await this.userModel.findByPk(id);
       if (!user) {
         this.logger.warn(`User with ID ${id} not found`);
-        throw new ConflictException('Foydalanuvchi topilmadi');
+        throw new NotFoundException('Foydalanuvchi topilmadi');
       }
       return user;
     } catch (error) {
@@ -91,7 +99,10 @@ export class UserService {
       const user = await this.userModel.findByPk(id);
       if (!user) {
         this.logger.warn(`User with ID ${id} not found`);
-        throw new ConflictException('Foydalanuvchi topilmadi');
+        throw new NotFoundException('Foydalanuvchi topilmadi');
+      }
+      if (updateUserDto.password) {
+        updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
       }
       return await user.update(updateUserDto);
     } catch (error) {
@@ -106,7 +117,7 @@ export class UserService {
       const user = await this.userModel.findByPk(id);
       if (!user) {
         this.logger.warn(`User with ID ${id} not found`);
-        throw new ConflictException('Foydalanuvchi topilmadi');
+        throw new NotFoundException('Foydalanuvchi topilmadi');
       }
       await user.destroy();
       this.logger.log(`User with ID ${id} deleted successfully`);
