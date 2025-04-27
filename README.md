@@ -97,3 +97,518 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 # CRMavto
+
+# API Foydalanish Yo‘riqnomasi (Frontend Ishlab Chiquvchilar Uchun)
+
+Bu yo‘riqnoma backend API’dan foydalanishni tushuntiradi. API foydalanuvchi va filiallarni boshqarish uchun mo‘ljallangan bo‘lib, autentifikatsiya va rollarga asoslangan cheklovlarni qo‘llab-quvvatlaydi. Quyida barcha endpoint’lar, so‘rovlar, javoblar va cheklovlar keltirilgan.
+
+## Umumiy Ma’lumot
+- **Base URL:** `http://localhost:3000` (production URL keyinroq taqdim etiladi).
+- **Autentifikatsiya:** Barcha endpoint’lar (login’dan tashqari) JWT token talab qiladi. Token `Authorization: Bearer <token>` sarlavhasida yuboriladi.
+- **Rollar:**
+  - `SUPER_ADMIN`: Barcha imkoniyatlarga ega (foydalanuvchi va filiallarni yaratish, yangilash, o‘chirish).
+  - `ADMIN`: Faqat o‘z filialidagi oddiy foydalanuvchilarni (`USER`) boshqaradi. Boshqa `ADMIN` yoki `SUPER_ADMIN` ni yangilay olmaydi yoki o‘chira olmaydi, filial qo‘sha olmaydi.
+  - `USER`: Faqat o‘z profilini ko‘ra oladi va yangilay oladi.
+- **Content-Type:** Barcha so‘rovlar uchun `Content-Type: application/json`.
+
+## 1. Autentifikatsiya
+API’dan foydalanish uchun avval token olish kerak.
+
+### POST /auth/login
+Foydalanuvchi tizimga kirish uchun token oladi.
+
+**So‘rov:**
+```
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "laziz123@gmail.com",
+  "password": "password"
+}
+```
+
+**Javob (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "superadmin",
+    "email": "laziz123@gmail.com",
+    "role": "super_admin",
+    "branchId": 1
+  }
+}
+```
+
+**Xato javoblari:**
+- `401 Unauthorized`: Email yoki parol noto‘g‘ri.
+  ```json
+  {
+    "statusCode": 401,
+    "message": "Email yoki parol noto‘g‘ri",
+    "error": "Unauthorized"
+  }
+  ```
+
+**Maslahatlar:**
+- Tokenni localStorage yoki secure cookie’da saqlang.
+- Tokenning amal qilish muddati cheklangan bo‘lishi mumkin. Agar `401 Unauthorized` xatosi chiqsa, qayta login qiling.
+
+## 2. Foydalanuvchi Boshqaruvi (/user)
+Foydalanuvchi bilan bog‘liq operatsiyalar.
+
+### POST /user
+Yangi foydalanuvchi yaratish (faqat `SUPER_ADMIN` uchun).
+
+**So‘rov:**
+```
+POST http://localhost:3000/user
+Authorization: Bearer <super_admin_token>
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "newpassword",
+  "role": "user",
+  "branchId": 1
+}
+```
+
+**Javob (201 Created):**
+```json
+{
+  "id": 6,
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "role": "user",
+  "branchId": 1,
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:00:00.000Z"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yaratishi mumkin.
+- `409 Conflict`: Email yoki username allaqachon mavjud.
+  ```json
+  {
+    "statusCode": 409,
+    "message": "Email allaqachon ro‘yxatdan o‘tgan",
+    "error": "Conflict"
+  }
+  ```
+
+### GET /user
+Barcha foydalanuvchilarni olish.
+- `SUPER_ADMIN`: Barcha foydalanuvchilarni ko‘radi.
+- `ADMIN`: Faqat o‘z filialidagi foydalanuvchilarni ko‘radi.
+
+**So‘rov:**
+```
+GET http://localhost:3000/user
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "username": "superadmin",
+    "email": "laziz123@gmail.com",
+    "role": "super_admin",
+    "branchId": 1,
+    "isActive": true,
+    "createdAt": "2025-04-27T12:00:00.000Z",
+    "updatedAt": "2025-04-27T12:00:00.000Z",
+    "branch": {
+      "id": 1,
+      "name": "Toshkent filiali",
+      "address": "Toshkent sh., Chilanzar"
+    }
+  },
+  ...
+]
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yoki `ADMIN` ko‘ra oladi.
+- `403 Forbidden`: `ADMIN` uchun filial biriktirilmagan bo‘lsa.
+
+### GET /user/me
+Foydalanuvchi o‘z profilini ko‘radi (`SUPER_ADMIN`, `ADMIN`, `USER`).
+
+**So‘rov:**
+```
+GET http://localhost:3000/user/me
+Authorization: Bearer <any_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "id": 2,
+  "username": "admin1",
+  "email": "admin1@example.com",
+  "role": "admin",
+  "branchId": 1,
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:00:00.000Z",
+  "branch": {
+    "id": 1,
+    "name": "Toshkent filiali",
+    "address": "Toshkent sh., Chilanzar"
+  }
+}
+```
+
+**Xato javoblari:**
+- `401 Unauthorized`: Token noto‘g‘ri yoki muddati o‘tgan.
+
+### GET /user/:id
+Muayyan foydalanuvchini ko‘rish.
+- `SUPER_ADMIN`: Istalgan foydalanuvchini ko‘radi.
+- `ADMIN`: Faqat o‘z filialidagi foydalanuvchilarni ko‘radi.
+
+**So‘rov:**
+```
+GET http://localhost:3000/user/4
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "id": 4,
+  "username": "user1",
+  "email": "user1@example.com",
+  "role": "user",
+  "branchId": 1,
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:00:00.000Z",
+  "branch": {
+    "id": 1,
+    "name": "Toshkent filiali",
+    "address": "Toshkent sh., Chilanzar"
+  }
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` boshqa filialdagi foydalanuvchini ko‘rishga urinmoqda.
+- `404 Not Found`: Foydalanuvchi topilmadi.
+
+### PATCH /user/:id
+Foydalanuvchi ma’lumotlarini yangilash.
+- `SUPER_ADMIN`: Istalgan foydalanuvchini yangilaydi.
+- `ADMIN`: O‘zini yoki o‘z filialidagi `USER` rolli foydalanuvchilarni yangilaydi. Boshqa `ADMIN` yoki `SUPER_ADMIN` ni yangilay olmaydi.
+- `USER`: Faqat o‘zini yangilaydi.
+
+**So‘rov:**
+```
+PATCH http://localhost:3000/user/4
+Authorization: Bearer <super_admin_token_or_admin_token>
+Content-Type: application/json
+
+{
+  "username": "user1_updated",
+  "password": "newpassword"
+}
+```
+
+**Javob (200 OK):**
+```json
+{
+  "id": 4,
+  "username": "user1_updated",
+  "email": "user1@example.com",
+  "role": "user",
+  "branchId": 1,
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:05:00.000Z"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` boshqa `ADMIN` yoki `SUPER_ADMIN` ni yangilamoqchi bo‘lsa.
+  ```json
+  {
+    "statusCode": 403,
+    "message": "Siz boshqa admin yoki super_admin foydalanuvchilarni yangilay olmaysiz",
+    "error": "Forbidden"
+  }
+  ```
+- `403 Forbidden`: `ADMIN` boshqa filialdagi foydalanuvchini yangilamoqchi bo‘lsa.
+- `404 Not Found`: Foydalanuvchi topilmadi.
+
+### DELETE /user/:id
+Foydalanuvchini o‘chirish.
+- `SUPER_ADMIN`: Istalgan foydalanuvchini o‘chiradi.
+- `ADMIN`: O‘z filialidagi `USER` rolli foydalanuvchilarni o‘chiradi. O‘zini, boshqa `ADMIN` yoki `SUPER_ADMIN` ni o‘chira olmaydi.
+
+**So‘rov:**
+```
+DELETE http://localhost:3000/user/4
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "message": "Foydalanuvchi o‘chirildi"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` o‘zini o‘chirmoqchi bo‘lsa.
+  ```json
+  {
+    "statusCode": 403,
+    "message": "Siz o‘zingizni o‘chira olmaysiz",
+    "error": "Forbidden"
+  }
+  ```
+- `403 Forbidden`: `ADMIN` boshqa `ADMIN` yoki `SUPER_ADMIN` ni o‘chirmoqchi bo‘lsa.
+- `403 Forbidden`: `ADMIN` boshqa filialdagi foydalanuvchini o‘chirmoqchi bo‘lsa.
+- `404 Not Found`: Foydalanuvchi topilmadi.
+
+### GET /user/count/all
+Umumiy foydalanuvchilar sonini olish.
+- `SUPER_ADMIN`: Barcha foydalanuvchilarni hisoblaydi.
+- `ADMIN`: O‘z filialidagi foydalanuvchilarni hisoblaydi.
+
+**So‘rov:**
+```
+GET http://localhost:3000/user/count/all
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "totalUsers": 5
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yoki `ADMIN` hisoblay oladi.
+
+### GET /user/count/admins
+Admin foydalanuvchilar sonini olish.
+- `SUPER_ADMIN`: Barcha adminlarni hisoblaydi.
+- `ADMIN`: O‘z filialidagi adminlarni hisoblaydi.
+
+**So‘rov:**
+```
+GET http://localhost:3000/user/count/admins
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "totalAdmins": 2
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yoki `ADMIN` hisoblay oladi.
+
+## 3. Filial Boshqaruvi (/branch)
+Filiallar bilan bog‘liq operatsiyalar.
+
+### POST /branch
+Yangi filial yaratish (faqat `SUPER_ADMIN` uchun).
+
+**So‘rov:**
+```
+POST http://localhost:3000/branch
+Authorization: Bearer <super_admin_token>
+Content-Type: application/json
+
+{
+  "name": "Andijon filiali",
+  "address": "Andijon sh., Navoiy ko‘chasi",
+  "phone": "+998901234569"
+}
+```
+
+**Javob (201 Created):**
+```json
+{
+  "id": 3,
+  "name": "Andijon filiali",
+  "address": "Andijon sh., Navoiy ko‘chasi",
+  "phone": "+998901234569",
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:00:00.000Z"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yaratishi mumkin.
+  ```json
+  {
+    "statusCode": 403,
+    "message": "Sizda bu amalni bajarish uchun ruxsat yo‘q",
+    "error": "Forbidden"
+  }
+  ```
+- `409 Conflict`: Filial nomi allaqachon mavjud.
+
+### GET /branch
+Barcha filiallarni olish.
+- `SUPER_ADMIN`: Barcha filiallarni ko‘radi.
+- `ADMIN`: O‘z filialidagi filiallarni ko‘radi (hozirda faqat o‘z `branchId` si).
+
+**So‘rov:**
+```
+GET http://localhost:3000/branch
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "name": "Toshkent filiali",
+    "address": "Toshkent sh., Chilanzar",
+    "phone": "+998901234567",
+    "isActive": true,
+    "createdAt": "2025-04-27T12:00:00.000Z",
+    "updatedAt": "2025-04-27T12:00:00.000Z"
+  },
+  ...
+]
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: Faqat `SUPER_ADMIN` yoki `ADMIN` ko‘ra oladi.
+- `403 Forbidden`: `ADMIN` uchun filial biriktirilmagan bo‘lsa.
+
+### GET /branch/:id
+Muayyan filialni ko‘rish.
+- `SUPER_ADMIN`: Istalgan filialni ko‘radi.
+- `ADMIN`: O‘z filialidagi filialni ko‘radi.
+
+**So‘rov:**
+```
+GET http://localhost:3000/branch/1
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "Toshkent filiali",
+  "address": "Toshkent sh., Chilanzar",
+  "phone": "+998901234567",
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:00:00.000Z"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` boshqa filialni ko‘rishga urinmoqda.
+- `404 Not Found`: Filial topilmadi.
+
+### PATCH /branch/:id
+Filial ma’lumotlarini yangilash.
+- `SUPER_ADMIN`: Istalgan filialni yangilaydi.
+- `ADMIN`: O‘z filialidagi filialni yangilaydi.
+
+**So‘rov:**
+```
+PATCH http://localhost:3000/branch/1
+Authorization: Bearer <super_admin_token_or_admin_token>
+Content-Type: application/json
+
+{
+  "name": "Toshkent filiali yangilangan",
+  "phone": "+998901234570"
+}
+```
+
+**Javob (200 OK):**
+```json
+{
+  "id": 1,
+  "name": "Toshkent filiali yangilangan",
+  "address": "Toshkent sh., Chilanzar",
+  "phone": "+998901234570",
+  "isActive": true,
+  "createdAt": "2025-04-27T12:00:00.000Z",
+  "updatedAt": "2025-04-27T12:05:00.000Z"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` boshqa filialni yangilamoqchi bo‘lsa.
+- `404 Not Found`: Filial topilmadi.
+- `409 Conflict`: Yangi nom allaqachon mavjud.
+
+### DELETE /branch/:id
+Filialni o‘chirish.
+- `SUPER_ADMIN`: Istalgan filialni o‘chiradi.
+- `ADMIN`: O‘z filialidagi filialni o‘chiradi.
+
+**So‘rov:**
+```
+DELETE http://localhost:3000/branch/1
+Authorization: Bearer <super_admin_token_or_admin_token>
+```
+
+**Javob (200 OK):**
+```json
+{
+  "message": "Filial o‘chirildi"
+}
+```
+
+**Xato javoblari:**
+- `403 Forbidden`: `ADMIN` boshqa filialni o‘chirmoqchi bo‘lsa.
+- `404 Not Found`: Filial topilmadi.
+
+## 4. Xato Kodlari
+Quyidagi xato kodlari API javoblarida qaytadi:
+- `400 Bad Request`: So‘rovdagi ma’lumotlar noto‘g‘ri (masalan, majburiy maydonlar yo‘q).
+- `401 Unauthorized`: Token yo‘q, noto‘g‘ri, yoki muddati o‘tgan.
+- `403 Forbidden`: Foydalanuvchida ruxsat yo‘q (masalan, `ADMIN` cheklangan amalni bajarmoqchi).
+- `404 Not Found`: Resurs (foydalanuvchi yoki filial) topilmadi.
+- `409 Conflict`: Ma’lumotlar ziddiyatli (masalan, email yoki filial nomi allaqachon mavjud).
+- `500 Internal Server Error`: Serverda xato (loglarni backend jamoasiga yuboring).
+
+## 5. Qo‘shimcha Maslahatlar
+- **Token boshqaruvi:**
+  - Tokenni `localStorage` yoki `HttpOnly` cookie’da saqlang.
+  - `401 Unauthorized` xatosi chiqsa, foydalanuvchini login sahifasiga yo‘naltiring.
+- **So‘rovlar:**
+  - Har bir so‘rovda `Authorization: Bearer <token>` sarlavhasini qo‘shing.
+  - `PATCH` so‘rovlarida faqat o‘zgartiriladigan maydonlarni yuboring.
+- **Xatolarni ko‘rsatish:**
+  - Xato xabarlarini (`message` maydoni) foydalanuvchiga tushunarli shaklda ko‘rsating (masalan, “Siz boshqa adminni yangilay olmaysiz”).
+- **Filial va foydalanuvchi bog‘lanishi:**
+  - `branchId` foydalanuvchilar va filiallarni bog‘laydi. `ADMIN` faqat o‘z `branchId` dagi resurslar bilan ishlaydi.
+- **Test ma’lumotlari:**
+  - Test uchun quyidagi foydalanuvchilardan foydalaning:
+    - `SUPER_ADMIN`: `laziz123@gmail.com` (parol: `password`)
+    - `ADMIN`: `admin1@example.com` (parol: `password`)
+    - `USER`: `user1@example.com` (parol: `password`)
+
+## 6. Qo‘shimcha Eslatmalar
+- Agar `create-user.dto.ts` yoki `update-user.dto.ts` dagi maydonlar haqida aniq ma’lumot kerak bo‘lsa, backend jamoasidan so‘rang.
+- `sales` kabi qo‘shimcha funksiyalar keyingi bosqichlarda qo‘shilishi mumkin.
+- Har qanday muammo bo‘lsa, backend jamoasiga loglar bilan murojaat qiling (`logs/error.log`).
+
+**Savollar bo‘lsa, backend jamoasiga yozing!** 🚀

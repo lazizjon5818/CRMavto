@@ -30,11 +30,11 @@ export class UserController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async findAll(@GetUser() user: any) {
     try {
-      this.logger.log(`Super Admin ${user.email} fetching all users`);
-      return await this.userService.findAll();
+      this.logger.log(`User ${user.email} fetching all users`);
+      return await this.userService.findAll(user);
     } catch (error) {
       this.logger.error(`Error fetching all users by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -47,11 +47,7 @@ export class UserController {
   async findMe(@GetUser() user: any) {
     try {
       this.logger.log(`User ${user.email} fetching own profile`);
-      this.logger.debug(`User object: ${JSON.stringify(user)}`); // Debug log
-      if (!user.sub) {
-        throw new ForbiddenException('Foydalanuvchi ID topilmadi');
-      }
-      return await this.userService.findOne(user.sub);
+      return await this.userService.findOne(user.sub, user);
     } catch (error) {
       this.logger.error(`Error fetching profile for ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -60,11 +56,11 @@ export class UserController {
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async findOne(@Param('id', ParseIntPipe) id: number, @GetUser() user: any) {
     try {
-      this.logger.log(`Super Admin ${user.email} fetching user with ID: ${id}`);
-      return await this.userService.findOne(id);
+      this.logger.log(`User ${user.email} fetching user with ID: ${id}`);
+      return await this.userService.findOne(id, user);
     } catch (error) {
       this.logger.error(`Error fetching user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -73,19 +69,15 @@ export class UserController {
 
   @Patch(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.USER)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
     @GetUser() user: any,
   ) {
     try {
-      if (user.role !== UserRole.SUPER_ADMIN && user.sub !== id) {
-        this.logger.warn(`User ${user.email} attempted to update another user ID: ${id}`);
-        throw new ForbiddenException('Faqat o‘zingizni yangilay olasiz');
-      }
       this.logger.log(`User ${user.email} updating user with ID: ${id}`);
-      return await this.userService.update(id, updateUserDto);
+      return await this.userService.update(id, updateUserDto, user);
     } catch (error) {
       this.logger.error(`Error updating user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -94,11 +86,11 @@ export class UserController {
 
   @Delete(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async remove(@Param('id', ParseIntPipe) id: number, @GetUser() user: any) {
     try {
-      this.logger.log(`Super Admin ${user.email} deleting user with ID: ${id}`);
-      return await this.userService.remove(id);
+      this.logger.log(`User ${user.email} deleting user with ID: ${id}`);
+      return await this.userService.remove(id, user);
     } catch (error) {
       this.logger.error(`Error deleting user with ID ${id} by ${user.email}: ${error.message}`, error.stack);
       throw error;
@@ -107,11 +99,11 @@ export class UserController {
 
   @Get('count/all')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async countAllUsers(@GetUser() user: any) {
     try {
-      this.logger.log(`Super Admin ${user.email} fetching total user count`);
-      const count = await this.userService.countAllUsers();
+      this.logger.log(`User ${user.email} fetching total user count`);
+      const count = await this.userService.countAllUsers(user);
       return { totalUsers: count };
     } catch (error) {
       this.logger.error(`Error fetching user count by ${user.email}: ${error.message}`, error.stack);
@@ -121,11 +113,11 @@ export class UserController {
 
   @Get('count/admins')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async countAdmins(@GetUser() user: any) {
     try {
-      this.logger.log(`Super Admin ${user.email} fetching admin count`);
-      const count = await this.userService.countAdmins();
+      this.logger.log(`User ${user.email} fetching admin count`);
+      const count = await this.userService.countAdmins(user);
       return { totalAdmins: count };
     } catch (error) {
       this.logger.error(`Error fetching admin count by ${user.email}: ${error.message}`, error.stack);

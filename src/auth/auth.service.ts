@@ -31,7 +31,13 @@ export class AuthService {
       throw new UnauthorizedException('Noto‘g‘ri email yoki parol');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role, username: user.username };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      username: user.username,
+      branchId: user.branchId,
+    };
     const accessToken = this.jwtService.sign(payload);
 
     return {
@@ -41,6 +47,7 @@ export class AuthService {
         username: user.username,
         email: user.email,
         role: user.role,
+        branchId: user.branchId,
       },
     };
   }

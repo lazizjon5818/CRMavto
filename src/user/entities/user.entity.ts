@@ -1,4 +1,5 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Branch } from '../../branch/entities/branch.entity';
 
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
@@ -41,6 +42,16 @@ export class User extends Model {
     defaultValue: UserRole.USER,
   })
   declare role: UserRole;
+
+  @ForeignKey(() => Branch)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  declare branchId: number;
+
+  @BelongsTo(() => Branch)
+  declare branch: Branch;
 
   @Column({
     type: DataType.BOOLEAN,
