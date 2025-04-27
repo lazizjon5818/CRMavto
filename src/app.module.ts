@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { ConfigModule } from '@nestjs/config';
+import { SalesModule } from './sales/sales.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { BranchModule } from './branch/branch.module';
@@ -25,6 +26,7 @@ import * as cookieParser from 'cookie-parser';
     UserModule,
     AuthModule,
     BranchModule,
+    SalesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
